@@ -1,0 +1,334 @@
+{
+  "name": "Agent de génération de recomendation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-recommendations",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3a1ad05b-fc56-4838-8db8-61578a19c8a8",
+      "name": "Webhook",
+      "webhookId": "ffed469f-5610-4762-aa53-e7b72a372258"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        624,
+        192
+      ],
+      "id": "79f7a52a-f3c9-47ae-9b48-d1107a72414e",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "2VTjkq2OHurZqVfA",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un agent de génération de recommandations carbone.\n\nTon rôle :\nGénérer des recommandations professionnelles à partir de résultats carbone déjà calculés par Laravel.\n\nIMPORTANT :\nTu ne dois jamais recalculer les émissions.\nTu ne dois jamais modifier les valeurs numériques.\nTu ne dois jamais inventer de coefficients.\nTu ne dois jamais inventer de catégories.\nTu ne dois jamais créer de TVA carbone.\nTu ne dois jamais parler de TND sauf si une donnée financière est fournie explicitement.\nTu dois utiliser uniquement les données fournies.\n\nTu dois répondre uniquement avec un objet JSON valide.\nTa réponse doit commencer par { et se terminer par }.\nAucun texte avant ou après.\nAucun markdown.\nAucun bloc ```json.\n\nDonnées reçues :\n{{ JSON.stringify($json) }}\n\nObjectif :\nÀ partir des résultats carbone, des facteurs élevés et des seuils carbone, générer des recommandations adaptées à l’entreprise.\n\nLes recommandations doivent être :\n- liées uniquement aux facteurs élevés fournis\n- réalistes\n- professionnelles\n- adaptées au secteur de l’entreprise\n- orientées action\n- compréhensibles pour un responsable d’entreprise\n\nChaque recommandation doit correspondre à une source d’émission réellement présente dans facteurs_eleves ou details_resultat.\n\nSi facteurs_eleves est vide :\n- ne crée pas de fausses recommandations critiques\n- retourne un tableau recommandations vide ou des recommandations générales très prudentes uniquement si elles sont directement liées aux résultats fournis\n- indique dans suggestion que le seuil n’est pas déclenché\n\nPriorités autorisées :\nfaible\nmoyenne\nelevee\n\nRègles de priorité :\n- priorite \"elevee\" si le facteur est dominant ou très élevé\n- priorite \"moyenne\" si le facteur est important mais non dominant\n- priorite \"faible\" si l’impact est secondaire\n\nFormat de réponse obligatoire :\n\n{\n  \"statut\": \"genere\",\n  \"suggestion\": {\n    \"seuil_declenchement\": 0,\n    \"raison_declenchement\": \"\",\n    \"statut\": \"generee\"\n  },\n  \"recommandations\": [\n    {\n      \"source_emission\": \"\",\n      \"categorie\": \"\",\n      \"facteur_nom\": \"\",\n      \"probleme_detecte\": \"\",\n      \"action_proposee\": \"\",\n      \"priorite\": \"\",\n      \"impact_carbone\": \"\",\n      \"horizon\": \"\",\n      \"indicateur_suivi\": \"\"\n    }\n  ]\n}\n\nContraintes :\n- source_emission doit venir des facteurs élevés ou des détails du résultat.\n- categorie doit correspondre à la catégorie fournie.\n- facteur_nom doit correspondre au nom du facteur fourni.\n- probleme_detecte doit expliquer pourquoi ce poste est important.\n- action_proposee doit être concrète.\n- impact_carbone doit être qualitatif, par exemple : \"réduction potentielle élevée\", \"réduction potentielle moyenne\", \"réduction potentielle faible\".\n- horizon doit être : \"court terme\", \"moyen terme\" ou \"long terme\".\n- indicateur_suivi doit proposer un indicateur simple à suivre.\nrecommandations_generales doit être un tableau de phrases uniquement.\nNe mets jamais d’objet JSON dans recommandations_generales.\nNe modifie aucun total carbone.\nNe crée aucune valeur numérique non fournie.\nNe crée aucune recommandation hors sujet.\nRetourne uniquement le JSON final.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        624,
+        0
+      ],
+      "id": "fc490e05-4708-4e41-817e-bce2e6a546d6",
+      "name": "Agent de génération de recommandations"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6386101f-1027-478e-84ba-2ded0b32fc33",
+              "leftValue": "={{ $json.valide }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1808,
+        0
+      ],
+      "id": "9b3ab754-1bd7-457d-8fed-6a7e64370efe",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractJson(value) {\n  if (typeof value === 'object' && value !== null) {\n    return value;\n  }\n\n  if (!value) {\n    throw new Error(\"Réponse vide de l'agent recommandations\");\n  }\n\n  let text = String(value)\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n\n  if (text.startsWith('\"') && text.endsWith('\"')) {\n    try {\n      text = JSON.parse(text);\n    } catch (e) {}\n  }\n\n  text = String(text)\n    .replace(/\\\\n/g, '\\n')\n    .replace(/\\\\\"/g, '\"')\n    .trim();\n\n  const start = text.indexOf('{');\n  const end = text.lastIndexOf('}');\n\n  if (start === -1 || end === -1 || end <= start) {\n    throw new Error(\"Aucun objet JSON trouvé dans la réponse : \" + text.slice(0, 500));\n  }\n\n  return JSON.parse(text.slice(start, end + 1));\n}\n\nconst raw = $json.output ?? $json.text ?? $json.response ?? $json;\n\nlet recommandations = extractJson(raw);\n\nif (recommandations.suggestion_recommandations) {\n  recommandations = recommandations.suggestion_recommandations;\n}\n\nreturn [\n  {\n    json: {\n      suggestion_recommandations: recommandations\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        0
+      ],
+      "id": "10836b68-035c-4fcb-8938-08035c24b8f8",
+      "name": "parser recommandations"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": "={{ 200 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2480,
+        176
+      ],
+      "id": "f73b4aa6-79af-404f-906b-52a80fe19d3a",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": "={{ 200 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2480,
+        -16
+      ],
+      "id": "c971feaa-289e-4ac3-9219-c8d9c6b479c0",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const suggestionRecommandations = $('parser recommandations').item.json.suggestion_recommandations;\nconst verification = $('vérification recommandations code').item.json;\n\nreturn [\n  {\n    json: {\n      success: true,\n      statut: \"recommandations_valides\",\n      message: \"Recommandations générées avec succès\",\n      suggestion_recommandations: suggestionRecommandations,\n      verification\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        -16
+      ],
+      "id": "914c71fe-8586-4ef3-a81f-3bcc6af8ba53",
+      "name": "Réponse recommandations valide"
+    },
+    {
+      "parameters": {
+        "jsCode": "const verification = $('vérification recommandations code').item.json;\n\nreturn [\n  {\n    json: {\n      success: false,\n      statut: \"a_regenerer\",\n      message: \"Les recommandations doivent être régénérées\",\n      verification,\n      erreurs: verification.erreurs || []\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        176
+      ],
+      "id": "a088a166-3144-40f5-8c0f-d198aa264b98",
+      "name": "Réponse recommandations invalide"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json.body ?? $json;\n\nreturn [\n  {\n    json: {\n      entreprise_id: input.entreprise_id ?? input.entreprise?.id ?? null,\n      resultat_id: input.resultat_id ?? input.resultat_carbone_id ?? null,\n      resultat_carbone_id: input.resultat_carbone_id ?? input.resultat_id ?? null,\n      entreprise: input.entreprise ?? {},\n      resultat_carbone: input.resultat_carbone ?? input.resultats ?? {},\n      facteurs_eleves: input.facteurs_eleves ?? [],\n      details_resultat: input.details_resultat ?? input.resultats?.details ?? [],\n      seuils_carbone: input.seuils_carbone ?? {}\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "97d63344-e481-4e9a-882c-a6808e79b597",
+      "name": "Préparer les données recommandations"
+    },
+    {
+      "parameters": {
+        "jsCode": "const initial = $('Préparer les données recommandations').item.json ?? {};\nconst data = $('parser recommandations').item.json.suggestion_recommandations ?? {};\n\nconst erreurs = [];\n\nif (data.statut !== 'genere') {\n  erreurs.push(\"Le statut des recommandations doit être genere.\");\n}\n\nif (!data.suggestion || typeof data.suggestion !== 'object') {\n  erreurs.push(\"La réponse ne contient pas d’objet suggestion.\");\n}\n\nif (!Array.isArray(data.recommandations)) {\n  erreurs.push(\"La réponse ne contient pas un tableau recommandations.\");\n}\n\nconst recommandations = Array.isArray(data.recommandations) ? data.recommandations : [];\nconst facteursEleves = initial.facteurs_eleves ?? [];\n\nconst categoriesAutorisees = new Set(\n  facteursEleves.map(f => f.categorie).filter(Boolean)\n);\n\nconst facteursAutorises = new Set(\n  facteursEleves.map(f => f.facteur_nom).filter(Boolean)\n);\n\nconst priorites = ['faible', 'moyenne', 'elevee'];\n\nfor (const [index, reco] of recommandations.entries()) {\n  if (!reco.source_emission) {\n    erreurs.push(`Recommandation ${index + 1} : source_emission manquante.`);\n  }\n\n  if (!reco.probleme_detecte) {\n    erreurs.push(`Recommandation ${index + 1} : probleme_detecte manquant.`);\n  }\n\n  if (!reco.action_proposee) {\n    erreurs.push(`Recommandation ${index + 1} : action_proposee manquante.`);\n  }\n\n  if (!reco.priorite) {\n    erreurs.push(`Recommandation ${index + 1} : priorite manquante.`);\n  }\n\n  if (reco.priorite && !priorites.includes(reco.priorite)) {\n    erreurs.push(`Recommandation ${index + 1} : priorité invalide ${reco.priorite}.`);\n  }\n\n  if (!reco.impact_carbone) {\n    erreurs.push(`Recommandation ${index + 1} : impact_carbone manquant.`);\n  }\n\n  if (reco.categorie && categoriesAutorisees.size > 0 && !categoriesAutorisees.has(reco.categorie)) {\n    erreurs.push(`Recommandation ${index + 1} : catégorie non présente dans les facteurs élevés : ${reco.categorie}.`);\n  }\n\n  if (reco.facteur_nom && facteursAutorises.size > 0 && !facteursAutorises.has(reco.facteur_nom)) {\n    erreurs.push(`Recommandation ${index + 1} : facteur non présent dans les facteurs élevés : ${reco.facteur_nom}.`);\n  }\n}\n\nconst texte = JSON.stringify(data).toLowerCase();\n\nif (texte.includes('tva')) {\n  erreurs.push(\"Les recommandations ne doivent pas contenir de TVA carbone.\");\n}\n\nif (texte.includes('tnd')) {\n  erreurs.push(\"Les recommandations ne doivent pas contenir de TND.\");\n}\n\nreturn [\n  {\n    json: {\n      valide: erreurs.length === 0,\n      statut: erreurs.length === 0 ? \"valide\" : \"a_regenerer\",\n      erreurs,\n      message: erreurs.length === 0 ? \"Recommandations valides\" : \"Les recommandations doivent être régénérées\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        0
+      ],
+      "id": "ec6ae501-7c92-4dd2-b6f6-520c79000190",
+      "name": "vérification recommandations code"
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "7b8fc515-527d-47c6-a4af-100dd1442ef0",
+      "name": "Wait",
+      "webhookId": "2c9556f7-dc72-4ce5-98f2-b814e3a17f49"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Préparer les données recommandations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent de génération de recommandations",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent de génération de recommandations": {
+      "main": [
+        [
+          {
+            "node": "parser recommandations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Réponse recommandations valide",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Réponse recommandations invalide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parser recommandations": {
+      "main": [
+        [
+          {
+            "node": "vérification recommandations code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Réponse recommandations valide": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Réponse recommandations invalide": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer les données recommandations": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "vérification recommandations code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Agent de génération de recommandations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f8b1bb58-727b-4a76-bf6c-5aaf4659b9d2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b16e77f1c2a25c049260a3c73edc07007b966d323411319668b572030c75f983"
+  },
+  "id": "HhZY1q4cYBuZbayq",
+  "tags": []
+}

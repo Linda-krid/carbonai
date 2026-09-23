@@ -1,0 +1,335 @@
+{
+  "name": "Agent de configuration formulaire",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-form",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "be45f542-e36f-4d80-aa5a-721378f7dd6a",
+      "name": "Webhook",
+      "webhookId": "c24de335-24a3-4e9e-96d1-4b120b0db748"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un agent de configuration de formulaire carbone.\n\nTon rôle :\nGénérer uniquement un schéma JSON de formulaire.\nTu ne calcules jamais les émissions carbone.\nTu ne génères pas de HTML.\nLaravel fera le design.\nLaravel utilisera le champ qui contient \"utilise_pour_calcul\": true pour calculer l’empreinte carbone.\n\nIMPORTANT :\nRéponds uniquement avec un objet JSON valide.\nAucun texte avant ou après.\nAucun bloc markdown.\nLe JSON doit commencer par { et se terminer par }.\n\nEntreprise :\n{{ JSON.stringify($json.entreprise) }}\n\nCatégories sélectionnées :\n{{ JSON.stringify($json.categories_selectionnees) }}\n\nRègle obligatoire :\nTu dois générer exactement une section pour chaque catégorie sélectionnée.\nN’ajoute aucune catégorie non sélectionnée.\nN’ignore aucune catégorie.\nNe fusionne pas les catégories.\n\nLes valeurs autorisées pour section.categorie sont uniquement :\ncarburant, transport, batiment, transport_personnel, machines, materiaux, dechets, voyages, employes, production.\n\nLa clé categorie doit toujours être un slug technique.\nLe titre peut être lisible.\n\nExemple correct :\n{\n  \"categorie\": \"machines\",\n  \"titre\": \"Machines et équipements\"\n}\n\nExemple interdit :\n{\n  \"categorie\": \"Machines et équipements\"\n}\n\nTypes autorisés :\ntext, number, select, file\n\nPériodes autorisées :\njour, semaine, mois, annee\n\nRÈGLE TRÈS IMPORTANTE POUR LE CALCUL :\nChaque section doit contenir exactement un seul champ principal utilisé pour le calcul carbone.\n\nChaque section doit contenir exactement un seul champ avec :\n\"utilise_pour_calcul\": true\n\nTous les autres champs doivent avoir :\n\"utilise_pour_calcul\": false\n\nLe champ avec \"utilise_pour_calcul\": true doit être :\n- de type \"number\"\n- cohérent avec l’unité du facteur d’émission\n- la donnée principale à multiplier par le coefficient du facteur\n\nNe génère jamais un champ générique appelé :\n- valeur\n- valeur_saisie\n- valeur_activite\n\nLaravel utilisera automatiquement le champ marqué \"utilise_pour_calcul\": true comme valeur de calcul.\n\nChaque champ doit contenir exactement ces clés :\n- nom\n- label\n- type\n- unite\n- obligatoire\n- periodes\n- utilise_pour_calcul\n\nSi le champ est de type \"select\", il doit aussi contenir :\n- options\n\nSi tu crées un champ avec type = \"select\", tu dois obligatoirement fournir une clé \"options\" avec au moins deux valeurs.\nSi tu ne connais pas les options, utilise type = \"text\" au lieu de type = \"select\".\n\nFormat obligatoire :\n\n{\n  \"statut\": \"genere\",\n  \"nom_formulaire\": \"Formulaire carbone dynamique\",\n  \"sections\": [\n    {\n      \"categorie\": \"carburant\",\n      \"titre\": \"Carburant\",\n      \"description\": \"Renseignez les données liées à la consommation de carburant.\",\n      \"champs\": [\n        {\n          \"nom\": \"type_carburant\",\n          \"label\": \"Type de carburant\",\n          \"type\": \"select\",\n          \"options\": [\"Diesel\", \"Essence\", \"GPL\", \"Fuel lourd\"],\n          \"unite\": null,\n          \"obligatoire\": false,\n          \"periodes\": [\"annee\"],\n          \"utilise_pour_calcul\": false\n        },\n        {\n          \"nom\": \"quantite_consommee\",\n          \"label\": \"Quantité consommée\",\n          \"type\": \"number\",\n          \"unite\": \"tonne\",\n          \"obligatoire\": true,\n          \"periodes\": [\"annee\", \"mois\"],\n          \"utilise_pour_calcul\": true\n        }\n      ]\n    }\n  ]\n}\n\nRègles par catégorie :\n\ncarburant :\ntitre \"Carburant\"\ndescription \"Renseignez les données liées à la consommation de carburant.\"\nchamps :\n- type_carburant, select, options [\"Diesel\", \"Essence\", \"GPL\", \"Fuel lourd\", \"Gaz naturel\"], unite null, obligatoire false, periodes [\"annee\"], utilise_pour_calcul false\n- quantite_consommee, number, unite \"tonne\", obligatoire true, periodes [\"annee\",\"mois\"], utilise_pour_calcul true\n\ntransport :\ntitre \"Transport\"\ndescription \"Renseignez les données liées au transport.\"\nchamps :\n- type_transport, select, options [\"Voiture moyenne\", \"Voiture centre-ville\", \"Voiture zone rurale\", \"Fret ferroviaire\"], unite null, obligatoire false, periodes [\"annee\"], utilise_pour_calcul false\n- distance_parcourue, number, unite \"km\", obligatoire true, periodes [\"annee\",\"mois\"], utilise_pour_calcul true\n\nbatiment :\ntitre \"Bâtiment et énergie\"\ndescription \"Renseignez les données liées à la consommation énergétique des bâtiments.\"\nchamps :\n- type_energie, select, options [\"Électricité\", \"Gaz naturel\"], unite null, obligatoire false, periodes [\"annee\"], utilise_pour_calcul false\n- consommation_energie, number, unite \"kWh\", obligatoire true, periodes [\"annee\",\"mois\"], utilise_pour_calcul true\n\ntransport_personnel :\ntitre \"Transport personnel\"\ndescription \"Renseignez les données liées aux déplacements des employés.\"\nchamps :\n- nombre_employes_concernes, number, unite \"unite\", obligatoire false, periodes [\"annee\"], utilise_pour_calcul false\n- distance_moyenne, number, unite \"km\", obligatoire true, periodes [\"jour\",\"semaine\",\"mois\",\"annee\"], utilise_pour_calcul true\n\nmachines :\ntitre \"Machines et équipements\"\ndescription \"Renseignez les données liées aux machines et équipements.\"\nchamps :\n- type_machine, text, unite null, obligatoire false, periodes [\"annee\"], utilise_pour_calcul false\n- consommation_machine, number, unite \"kWh\", obligatoire true, periodes [\"annee\",\"mois\"], utilise_pour_calcul true\n\nmateriaux :\ntitre \"Matériaux\"\ndescription \"Renseignez les données liées aux matériaux utilisés.\"\nchamps :\n- type_materiau, select, options [\"Acier recyclé\", \"Papier\", \"Carton\", \"Verre\"], unite null, obligatoire false, periodes [\"annee\"], utilise_pour_calcul false\n- quantite_materiau, number, unite \"tonne\", obligatoire true, periodes [\"annee\",\"mois\"], utilise_pour_calcul true\n\ndechets :\ntitre \"Déchets\"\ndescription \"Renseignez les données liées aux déchets et eaux usées.\"\nchamps :\n- type_dechet, select, options [\"Déchets solides\", \"Eaux usées\"], unite null, obligatoire false, periodes [\"annee\"], utilise_pour_calcul false\n- quantite_dechet, number, unite \"tonne\", obligatoire true, periodes [\"annee\",\"mois\"], utilise_pour_calcul true\n\nvoyages :\ntitre \"Voyages professionnels\"\ndescription \"Renseignez les données liées aux voyages professionnels.\"\nchamps :\n- moyen_transport, select, options [\"Voiture moyenne\", \"Voiture centre-ville\", \"Fret ferroviaire\"], unite null, obligatoire false, periodes [\"annee\"], utilise_pour_calcul false\n- distance_voyage, number, unite \"km\", obligatoire true, periodes [\"annee\",\"mois\"], utilise_pour_calcul true\n\nemployes :\ntitre \"Employés\"\ndescription \"Renseignez les données liées aux activités des employés.\"\nchamps :\n- type_activite_employe, select, options [\"Repas\", \"Équipement informatique\", \"Papier\", \"Déplacement\"], unite null, obligatoire false, periodes [\"annee\"], utilise_pour_calcul false\n- quantite_activite_employe, number, unite \"unite\", obligatoire true, periodes [\"jour\",\"semaine\",\"mois\",\"annee\"], utilise_pour_calcul true\n\nproduction :\ntitre \"Production\"\ndescription \"Renseignez les données liées à la production.\"\nchamps :\n- type_produit, text, unite null, obligatoire false, periodes [\"annee\"], utilise_pour_calcul false\n- quantite_produite, number, unite \"tonne\", obligatoire true, periodes [\"annee\",\"mois\"], utilise_pour_calcul true\n\nRÈGLES DE COHÉRENCE :\n- Ne crée pas deux champs utilise_pour_calcul true dans la même section.\n- Ne crée pas de champ \"Valeur saisie\".\n- Ne duplique pas la donnée principale.\n- Si une section contient \"quantite_consommee\", ne crée pas un autre champ équivalent.\n- Si une section contient \"distance_parcourue\", ne crée pas un autre champ équivalent.\n- Si une section contient \"quantite_produite\", ne crée pas un autre champ équivalent.\n- Les champs descriptifs servent seulement à préciser le contexte.\n- Le calcul sera fait uniquement avec le champ utilise_pour_calcul true.\n\nRÈGLE TECHNIQUE FINALE :\nGénère un JSON court et valide.\nChaque section doit contenir maximum 2 champs.\nChaque objet dans un tableau doit être séparé par une virgule.\nChaque tableau doit être fermé avec ].\nChaque objet doit être fermé avec }.\nAucune virgule finale.\nAucun commentaire.\nAucun texte hors JSON.\nNe génère que les catégories présentes dans categories_selectionnees.\n\nRetourne uniquement le JSON final.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "d3913c30-1581-4359-b516-e87b8d6feee8",
+      "name": "Agent configuration formulaire"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "maxTokensToSample": 3000,
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        288,
+        208
+      ],
+      "id": "5ccbc39f-ba95-42c1-bd6d-161555c8567d",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "2VTjkq2OHurZqVfA",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "73483ddf-346d-432f-b24a-751efe1e2064",
+              "leftValue": "={{ $json.valide }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1648,
+        0
+      ],
+      "id": "2b55d437-021d-4482-9e82-5f6570eebd27",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractJson(value) {\n  let text = value;\n\n  if (typeof text === 'object' && text !== null) {\n    return text;\n  }\n\n  if (!text) {\n    throw new Error(\"Réponse vide de l'agent de configuration\");\n  }\n\n  text = String(text)\n    .replace(/```json/g, '')\n    .replace(/```/g, '')\n    .trim();\n\n  const start = text.indexOf('{');\n  const end = text.lastIndexOf('}');\n\n  if (start === -1 || end === -1 || end <= start) {\n    throw new Error(\"Aucun objet JSON complet trouvé dans la réponse : \" + text.slice(0, 500));\n  }\n\n  const jsonText = text.slice(start, end + 1);\n\n  try {\n    return JSON.parse(jsonText);\n  } catch (error) {\n    throw new Error(\n      \"JSON invalide généré par l'agent. \" +\n      error.message +\n      \"\\n\\nExtrait autour de l'erreur :\\n\" +\n      jsonText.slice(Math.max(0, error.message.match(/\\d+/)?.[0] - 200 || 0), 500)\n    );\n  }\n}\n\nconst raw = $json.output ?? $json.text ?? $json.response ?? $json;\nlet formulaire = extractJson(raw);\n\nif (formulaire.formulaire) {\n  formulaire = formulaire.formulaire;\n}\n\nreturn [\n  {\n    json: {\n      formulaire: formulaire\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        -240
+      ],
+      "id": "c072b690-ccb8-48ee-900e-c627f2a10ab0",
+      "name": "parser formulaire"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": "={{ 200 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2288,
+        144
+      ],
+      "id": "cc001470-2a5d-463d-b48b-5ad8e95e4553",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": "={{ 200 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2288,
+        -16
+      ],
+      "id": "53a2f929-5f4d-4bfe-9c54-66fb5cb9d90c",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const formulaire = $('normaliser formulaire').item.json.formulaire;\nconst verification = $('vérification formulaire code').item.json;\n\nreturn [\n  {\n    json: {\n      success: true,\n      statut: \"formulaire_valide\",\n      message: \"Formulaire généré avec succès\",\n      formulaire,\n      verification\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2064,
+        0
+      ],
+      "id": "81533e7b-5261-4df9-b62b-b565731d311d",
+      "name": "Réponse formulaire valide"
+    },
+    {
+      "parameters": {
+        "jsCode": "const verification = $('vérification formulaire code').item.json;\n\nreturn [\n  {\n    json: {\n      success: false,\n      statut: \"a_regenerer\",\n      message: \"Le formulaire doit être régénéré\",\n      verification,\n      erreurs: verification.erreurs || []\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2064,
+        160
+      ],
+      "id": "e427d8f7-21ef-40f9-ad30-47d90e9e48ea",
+      "name": "Réponse formulaire invalide"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body ?? $input.first().json;\n\nconst slugsValides = [\n  'carburant',\n  'transport',\n  'batiment',\n  'transport_personnel',\n  'machines',\n  'materiaux',\n  'dechets',\n  'voyages',\n  'employes',\n  'production'\n];\n\nfunction normalizeCategory(value) {\n  if (!value) return null;\n\n  const v = String(value)\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[_-]/g, ' ')\n    .trim();\n\n  const map = {\n    'carburant': 'carburant',\n    'transport': 'transport',\n    'transports': 'transport',\n\n    'batiment': 'batiment',\n    'batiments': 'batiment',\n    'energie': 'batiment',\n    'electricite': 'batiment',\n    'consommation energie': 'batiment',\n\n    'transport personnel': 'transport_personnel',\n    'deplacement employes': 'transport_personnel',\n    'deplacements employes': 'transport_personnel',\n\n    'machines': 'machines',\n    'machine': 'machines',\n    'machines et equipements': 'machines',\n    'equipements': 'machines',\n    'equipement': 'machines',\n\n    'materiaux': 'materiaux',\n    'materiel': 'materiaux',\n    'matiere': 'materiaux',\n    'matieres': 'materiaux',\n\n    'dechets': 'dechets',\n    'dechet': 'dechets',\n    'dechets solides': 'dechets',\n\n    'voyages': 'voyages',\n    'voyage': 'voyages',\n    'voyages professionnels': 'voyages',\n\n    'employes': 'employes',\n    'employe': 'employes',\n    'personnel': 'employes',\n\n    'production': 'production'\n  };\n\n  return map[v] ?? null;\n}\n\nconst rawSelected =\n  input.categories_selectionnees ??\n  input.facteurs_selectionnes ??\n  [];\n\nlet categories = [];\n\nif (Array.isArray(rawSelected)) {\n  categories = rawSelected\n    .map(item => {\n      if (typeof item === 'string') {\n        return normalizeCategory(item);\n      }\n\n      return normalizeCategory(\n        item.categorie ??\n        item.category ??\n        item.key ??\n        item.nom ??\n        item.name ??\n        item.titre ??\n        item.label\n      );\n    })\n    .filter(Boolean);\n}\n\ncategories = [...new Set(categories)]\n  .filter(categorie => slugsValides.includes(categorie));\n\nreturn [\n  {\n    json: {\n      entreprise_id: input.entreprise_id ?? null,\n      formulaire_configuration_id: input.formulaire_configuration_id ?? null,\n      entreprise: input.entreprise ?? {},\n      categories_selectionnees: categories,\n      facteurs_selectionnes: input.facteurs_selectionnes ?? []\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "272206ca-a5e7-4f83-8b9a-8dfc0a370384",
+      "name": "préparer les données"
+    },
+    {
+      "parameters": {
+        "jsCode": "const selected = $('préparer les données').item.json.categories_selectionnees ?? [];\nconst formulaireOriginal = $('parser formulaire').item.json.formulaire ?? {};\n\nconst titres = {\n  carburant: 'Carburant',\n  transport: 'Transport',\n  batiment: 'Bâtiment et énergie',\n  transport_personnel: 'Transport personnel',\n  machines: 'Machines et équipements',\n  materiaux: 'Matériaux',\n  dechets: 'Déchets',\n  voyages: 'Voyages professionnels',\n  employes: 'Employés',\n  production: 'Production'\n};\n\nconst descriptions = {\n  carburant: 'Renseignez les données liées à la consommation de carburant.',\n  transport: 'Renseignez les données liées au transport.',\n  batiment: 'Renseignez les données liées aux bâtiments et à l’énergie.',\n  transport_personnel: 'Renseignez les données liées aux déplacements des employés.',\n  machines: 'Renseignez les données liées aux machines et équipements.',\n  materiaux: 'Renseignez les données liées aux matériaux.',\n  dechets: 'Renseignez les données liées aux déchets.',\n  voyages: 'Renseignez les données liées aux voyages professionnels.',\n  employes: 'Renseignez les données liées aux employés.',\n  production: 'Renseignez les données liées à la production.'\n};\n\nfunction fallbackFields(categorie) {\n  const fields = {\n    carburant: [\n      { nom: 'quantite_consommee', label: 'Quantité consommée', type: 'number', unite: 'tonne', obligatoire: true, periodes: ['annee', 'mois'] }\n    ],\n    transport: [\n      { nom: 'distance_parcourue', label: 'Distance parcourue', type: 'number', unite: 'km', obligatoire: true, periodes: ['annee', 'mois'] }\n    ],\n    batiment: [\n      { nom: 'consommation_electricite', label: 'Consommation d’électricité', type: 'number', unite: 'kWh', obligatoire: true, periodes: ['annee', 'mois'] }\n    ],\n    transport_personnel: [\n      { nom: 'distance_moyenne', label: 'Distance moyenne parcourue', type: 'number', unite: 'km', obligatoire: true, periodes: ['jour', 'semaine', 'mois', 'annee'] }\n    ],\n    machines: [\n      { nom: 'consommation_energie', label: 'Énergie consommée', type: 'number', unite: 'kWh', obligatoire: true, periodes: ['annee', 'mois'] }\n    ],\n    materiaux: [\n      { nom: 'quantite_materiau', label: 'Quantité de matériau utilisée', type: 'number', unite: 'tonne', obligatoire: true, periodes: ['annee', 'mois'] }\n    ],\n    dechets: [\n      { nom: 'quantite_dechet', label: 'Quantité de déchets', type: 'number', unite: 'tonne', obligatoire: true, periodes: ['annee', 'mois'] }\n    ],\n    voyages: [\n      { nom: 'distance_voyage', label: 'Distance du voyage', type: 'number', unite: 'km', obligatoire: true, periodes: ['annee', 'mois'] }\n    ],\n    employes: [\n      { nom: 'nombre_repas', label: 'Nombre de repas', type: 'number', unite: 'repas', obligatoire: false, periodes: ['jour', 'semaine', 'mois', 'annee'] }\n    ],\n    production: [\n      { nom: 'quantite_produite', label: 'Quantité produite', type: 'number', unite: 'tonne', obligatoire: true, periodes: ['annee', 'mois'] }\n    ]\n  };\n\n  return fields[categorie] ?? [\n    { nom: 'valeur', label: 'Valeur', type: 'number', unite: 'unite', obligatoire: true, periodes: ['annee'] }\n  ];\n}\n\nfunction normalizeField(champ) {\n  let periodes = Array.isArray(champ.periodes) ? champ.periodes : ['annee'];\n\n  periodes = periodes\n    .map(p => String(p).toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim())\n    .map(p => {\n      if (p === 'annee' || p === 'an' || p === 'annuel') return 'annee';\n      if (p === 'mois') return 'mois';\n      if (p === 'semaine') return 'semaine';\n      if (p === 'jour') return 'jour';\n      return null;\n    })\n    .filter(Boolean);\n\n  if (periodes.length === 0) {\n    periodes = ['annee'];\n  }\n\n  return {\n    nom: champ.nom ?? champ.name ?? 'valeur',\n    label: champ.label ?? 'Valeur',\n    type: ['text', 'number', 'select', 'file'].includes(champ.type) ? champ.type : 'number',\n    unite: champ.unite ?? champ.unit ?? null,\n    obligatoire: champ.obligatoire ?? champ.required ?? true,\n    periodes: periodes,\n    utilise_pour_calcul: champ.utilise_pour_calcul === true || champ.utilise_pour_calcul === \"true\",\noptions: Array.isArray(champ.options) ? champ.options : []\n  };\n}\n\nconst sectionsOriginales = Array.isArray(formulaireOriginal.sections)\n  ? formulaireOriginal.sections\n  : [];\n\nconst sectionsParCategorie = {};\n\nfor (const section of sectionsOriginales) {\n  const categorie = section.categorie;\n\n  // On garde seulement les catégories cochées dans Laravel\n  if (!selected.includes(categorie)) {\n    continue;\n  }\n\n  const champs = Array.isArray(section.champs)\n    ? section.champs.map(normalizeField)\n    : [];\n\n  sectionsParCategorie[categorie] = {\n    categorie: categorie,\n    titre: titres[categorie] ?? section.titre ?? categorie,\n    description: descriptions[categorie] ?? section.description ?? '',\n    champs: champs.length > 0 ? champs : fallbackFields(categorie)\n  };\n}\n\n// On reconstruit le formulaire final avec exactement les catégories sélectionnées\nconst sectionsFinales = selected.map(categorie => {\n  return sectionsParCategorie[categorie] ?? {\n    categorie: categorie,\n    titre: titres[categorie] ?? categorie,\n    description: descriptions[categorie] ?? '',\n    champs: fallbackFields(categorie)\n  };\n});\n\nreturn [\n  {\n    json: {\n      formulaire: {\n        statut: 'genere',\n        nom_formulaire: formulaireOriginal.nom_formulaire ?? 'Formulaire carbone dynamique',\n        sections: sectionsFinales\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        -240
+      ],
+      "id": "e84a819d-f7ae-4458-b25b-31531454f18d",
+      "name": "normaliser formulaire"
+    },
+    {
+      "parameters": {
+        "jsCode": "const formulaire = $('normaliser formulaire').item.json.formulaire ?? {};\nconst prepareData = $('préparer les données').item.json ?? {};\n\nconst selected =\n  prepareData.categories_selectionnees ??\n  prepareData.facteurs_selectionnes ??\n  [];\n\nconst validSlugs = [\n  'carburant',\n  'transport',\n  'batiment',\n  'transport_personnel',\n  'machines',\n  'materiaux',\n  'dechets',\n  'voyages',\n  'employes',\n  'production'\n];\n\nconst erreurs = [];\n\nconst sections = Array.isArray(formulaire.sections) ? formulaire.sections : [];\n\nif (!Array.isArray(formulaire.sections)) {\n  erreurs.push(\"Le formulaire ne contient pas un tableau sections.\");\n}\n\nconst categoriesGenerees = sections.map(section => section.categorie);\n\nif (sections.length !== selected.length) {\n  erreurs.push(`Nombre de sections incorrect : attendu ${selected.length}, reçu ${sections.length}.`);\n}\n\nfor (const categorie of selected) {\n  if (!categoriesGenerees.includes(categorie)) {\n    erreurs.push(`Catégorie manquante : ${categorie}`);\n  }\n}\n\nfor (const categorie of categoriesGenerees) {\n  if (!validSlugs.includes(categorie)) {\n    erreurs.push(`Catégorie invalide : ${categorie}`);\n  }\n\n  if (!selected.includes(categorie)) {\n    erreurs.push(`Catégorie non sélectionnée présente : ${categorie}`);\n  }\n}\n\nconst duplicates = categoriesGenerees.filter((item, index) => categoriesGenerees.indexOf(item) !== index);\n\nfor (const duplicate of [...new Set(duplicates)]) {\n  erreurs.push(`Doublon de catégorie : ${duplicate}`);\n}\n\nfor (const section of sections) {\n  if (!section.categorie) {\n    erreurs.push(\"Une section ne contient pas de catégorie.\");\n  }\n\n  if (!section.titre) {\n    erreurs.push(`La section ${section.categorie ?? 'inconnue'} ne contient pas de titre.`);\n  }\n\n  if (!Array.isArray(section.champs) || section.champs.length === 0) {\n    erreurs.push(`La section ${section.categorie} ne contient aucun champ.`);\n    continue;\n  }\n\n  const champsCalcul = section.champs.filter(champ =>\n    champ.utilise_pour_calcul === true || champ.utilise_pour_calcul === \"true\"\n  );\n\n  if (champsCalcul.length !== 1) {\n    erreurs.push(`La section ${section.categorie} doit contenir exactement un champ utilise_pour_calcul=true.`);\n  }\n\n  for (const champ of section.champs) {\n    if (!champ.nom) erreurs.push(`Champ sans nom dans ${section.categorie}`);\n    if (!champ.label) erreurs.push(`Champ sans label dans ${section.categorie}`);\n    if (!champ.type) erreurs.push(`Champ sans type dans ${section.categorie}`);\n\n    if (!Object.prototype.hasOwnProperty.call(champ, 'unite')) {\n      erreurs.push(`Champ sans unité dans ${section.categorie}`);\n    }\n\n    if (!Object.prototype.hasOwnProperty.call(champ, 'obligatoire')) {\n      erreurs.push(`Champ sans obligatoire dans ${section.categorie}`);\n    }\n\n    if (!Object.prototype.hasOwnProperty.call(champ, 'utilise_pour_calcul')) {\n      erreurs.push(`Champ sans utilise_pour_calcul dans ${section.categorie}`);\n    }\n\n    if (!['text', 'number', 'select', 'file'].includes(champ.type)) {\n      erreurs.push(`Type invalide dans ${section.categorie} : ${champ.type}`);\n    }\n\n    if (!Array.isArray(champ.periodes)) {\n      erreurs.push(`Périodes invalides dans le champ ${champ.nom}`);\n    } else {\n      for (const periode of champ.periodes) {\n        if (!['jour', 'semaine', 'mois', 'annee'].includes(periode)) {\n          erreurs.push(`Période invalide dans ${champ.nom} : ${periode}`);\n        }\n      }\n    }\n\n    if (champ.type === 'select') {\n      if (!Array.isArray(champ.options) || champ.options.length < 2) {\n        erreurs.push(`Le champ select ${champ.nom} doit contenir au moins deux options.`);\n      }\n    }\n\n    const isCalculationField =\n      champ.utilise_pour_calcul === true ||\n      champ.utilise_pour_calcul === \"true\";\n\n    if (isCalculationField && champ.type !== 'number') {\n      erreurs.push(`Le champ de calcul ${champ.nom} doit être de type number.`);\n    }\n  }\n}\n\nreturn [\n  {\n    json: {\n      valide: erreurs.length === 0,\n      statut: erreurs.length === 0 ? \"valide\" : \"a_regenerer\",\n      erreurs,\n      message: erreurs.length === 0 ? \"Formulaire valide\" : \"Formulaire invalide\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        -240
+      ],
+      "id": "1488988e-1e02-471e-9d86-b10e61476e2e",
+      "name": "vérification formulaire code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "préparer les données",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent configuration formulaire",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent configuration formulaire": {
+      "main": [
+        [
+          {
+            "node": "parser formulaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Réponse formulaire valide",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Réponse formulaire invalide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parser formulaire": {
+      "main": [
+        [
+          {
+            "node": "normaliser formulaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Réponse formulaire valide": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Réponse formulaire invalide": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "préparer les données": {
+      "main": [
+        [
+          {
+            "node": "Agent configuration formulaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normaliser formulaire": {
+      "main": [
+        [
+          {
+            "node": "vérification formulaire code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "vérification formulaire code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4de0c660-87db-44db-881d-812ce16076f1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b16e77f1c2a25c049260a3c73edc07007b966d323411319668b572030c75f983"
+  },
+  "id": "4q90H5IB2cqjz7Pu",
+  "tags": []
+}

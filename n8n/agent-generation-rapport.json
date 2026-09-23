@@ -1,0 +1,311 @@
+{
+  "name": "Agent de génération de rapport",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-report",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ab60fa66-a847-48b4-81ff-1801188a75fa",
+      "name": "Webhook",
+      "webhookId": "7063a6ba-74ab-4214-9038-21f6d5988ae8"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "maxTokensToSample": 2000,
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        288,
+        208
+      ],
+      "id": "ef76449e-16c9-4e8f-bb87-6bdf8968a34d",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "2VTjkq2OHurZqVfA",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "aa8f0265-fd38-44b0-9783-5cd87385290d",
+              "leftValue": "={{ $json.valide }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1440,
+        0
+      ],
+      "id": "0ae4d015-ced6-4a58-97a8-fd70ad2ac763",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un agent de génération de rapport carbone.\n\nTon rôle :\nGénérer un rapport structuré à partir de résultats carbone déjà calculés par Laravel.\n\nIMPORTANT ABSOLU :\nTu ne dois jamais recalculer les émissions.\nTu ne dois jamais additionner des valeurs.\nTu ne dois jamais écrire une expression mathématique dans le JSON.\nTu dois uniquement copier les valeurs numériques déjà fournies par Laravel.\n\nTu ne dois jamais modifier :\n- total_kgco2e\n- total_tco2e\n- emissions_kgco2e\n- emissions_tco2e\n- coefficient\n- valeur_annualisee\n\nTu ne dois jamais ajouter de TVA carbone.\nTu ne dois jamais parler de TND sauf si une donnée financière est fournie explicitement.\n\nTu dois répondre uniquement avec un objet JSON valide.\nLe JSON doit commencer par { et se terminer par }.\nAucun texte avant ou après.\nAucun markdown.\nAucun bloc ```json.\n\nDonnées reçues :\n{{ JSON.stringify($json) }}\n\nFORMAT OBLIGATOIRE :\nTu dois retourner exactement cette structure :\n\n{\n  \"titre\": \"Rapport d’empreinte carbone\",\n  \"resume_executif\": \"\",\n  \"informations_entreprise\": {\n    \"nom\": \"\",\n    \"secteur\": \"\",\n    \"pays\": \"\",\n    \"ville\": \"\",\n    \"annee_calcul\": \"\"\n  },\n  \"resultats_principaux\": {\n    \"total_kgco2e\": 0,\n    \"total_tco2e\": 0,\n    \"categorie_dominante\": \"\",\n    \"facteur_dominant\": \"\"\n  },\n  \"analyse_globale\": \"\",\n  \"analyse_par_categorie\": [\n    {\n      \"categorie\": \"\",\n      \"emissions_kgco2e\": 0,\n      \"emissions_tco2e\": 0,\n      \"commentaire\": \"\"\n    }\n  ],\n  \"points_critiques\": [],\n  \"recommandations_generales\": [],\n  \"conclusion\": \"\"\n}\n\nRÈGLES DE CONTENU OBLIGATOIRES :\n- Ne laisse jamais resume_executif vide.\n- Ne laisse jamais analyse_globale vide.\n- Ne laisse jamais conclusion vide.\n- Ne laisse jamais commentaire vide dans analyse_par_categorie.\n- Ne laisse pas points_critiques vide.\n- Ne laisse pas recommandations_generales vide.\n\nresume_executif :\nÉcris un paragraphe professionnel de 3 à 5 phrases qui résume le résultat carbone de l’entreprise.\n\nanalyse_globale :\nÉcris un paragraphe qui explique le total obtenu, la catégorie dominante et le facteur dominant.\n\nanalyse_par_categorie :\nPour chaque catégorie présente dans details_resultat, crée une entrée avec :\n- categorie\n- emissions_kgco2e\n- emissions_tco2e\n- commentaire\n\nLe commentaire doit expliquer brièvement le poids de cette catégorie dans le bilan.\n\npoints_critiques :\nAjoute au moins 2 points critiques basés sur les catégories les plus émettrices.\n\nrecommandations_generales :\nAjoute au moins 2 recommandations générales liées aux postes les plus émetteurs.\n\nconclusion :\nÉcris un paragraphe court qui conclut le rapport et rappelle l’importance du suivi carbone.\n\nRÈGLES NUMÉRIQUES :\n- resultats_principaux.total_kgco2e doit être copié exactement depuis resultats.total_kgco2e.\n- resultats_principaux.total_tco2e doit être copié exactement depuis resultats.total_tco2e.\n- resultats_principaux.categorie_dominante doit être copié depuis resultats.categorie_dominante.\n- resultats_principaux.facteur_dominant doit être copié depuis resultats.facteur_dominant.\n- analyse_par_categorie.emissions_kgco2e doit être copié depuis details_resultat.\n- analyse_par_categorie.emissions_tco2e doit être copié depuis details_resultat.\nRÈGLE POUR points_critiques :\npoints_critiques doit être un tableau de chaînes de caractères uniquement.\nChaque élément doit être une phrase claire.\nNe mets jamais d’objet JSON dans points_critiques.\n\nExemple correct :\n\"points_critiques\": [\n  \"Le carburant représente un poste critique du bilan carbone.\",\n  \"Les déchets constituent une source importante d’émissions.\"\n]\n\nExemple interdit :\n\"points_critiques\": [\n  {\n    \"categorie\": \"carburant\",\n    \"emissions_tco2e\": 436.32,\n    \"commentaire\": \"...\"\n  }\n]\nINTERDICTION :\n- Ne mets jamais \"\" dans resume_executif.\n- Ne mets jamais \"\" dans analyse_globale.\n- Ne mets jamais \"\" dans conclusion.\n- Ne mets jamais \"\" dans commentaire.\n- Ne retourne jamais un tableau vide pour points_critiques.\n- Ne retourne jamais un tableau vide pour recommandations_generales.\n\nRetourne uniquement le JSON final.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "e4387a9a-a664-483a-a364-c695dee585d4",
+      "name": "Agent de génération rapport"
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractJson(value) {\n  if (typeof value === 'object' && value !== null) {\n    return value;\n  }\n\n  if (!value) {\n    throw new Error(\"Réponse vide de l'agent rapport\");\n  }\n\n  let text = String(value)\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n\n  if (text.startsWith('\"') && text.endsWith('\"')) {\n    try {\n      text = JSON.parse(text);\n    } catch (e) {}\n  }\n\n  text = String(text)\n    .replace(/\\\\n/g, '\\n')\n    .replace(/\\\\\"/g, '\"')\n    .trim();\n\n  const start = text.indexOf('{');\n  const end = text.lastIndexOf('}');\n\n  if (start === -1 || end === -1 || end <= start) {\n    throw new Error(\"Aucun objet JSON trouvé dans la réponse : \" + text.slice(0, 500));\n  }\n\n  const jsonText = text.slice(start, end + 1);\n\n  try {\n    return JSON.parse(jsonText);\n  } catch (error) {\n    throw new Error(\n      \"JSON invalide généré par l'agent rapport : \" +\n      error.message +\n      \"\\n\\nExtrait :\\n\" +\n      jsonText.slice(0, 800)\n    );\n  }\n}\n\nconst raw = $json.output ?? $json.text ?? $json.response ?? $json;\n\nlet rapport = extractJson(raw);\n\nif (rapport.rapport) {\n  rapport = rapport.rapport;\n}\n\n// Normalisation des clés obligatoires\nrapport.titre = rapport.titre ?? rapport.title ?? \"Rapport d’empreinte carbone\";\n\nrapport.resume_executif =\n  rapport.resume_executif ??\n  rapport.resume ??\n  rapport.résumé ??\n  rapport.resumeExecutive ??\n  rapport.synthese ??\n  \"\";\n\nrapport.analyse_globale =\n  rapport.analyse_globale ??\n  rapport.analyse ??\n  rapport.analyse_generale ??\n  rapport.commentaire_global ??\n  \"\";\n\nrapport.conclusion =\n  rapport.conclusion ??\n  rapport.conclusion_generale ??\n  rapport.synthese_finale ??\n  rapport.bilan ??\n  \"\";\n\nrapport.informations_entreprise =\n  rapport.informations_entreprise ??\n  rapport.entreprise ??\n  {};\n\nrapport.resultats_principaux =\n  rapport.resultats_principaux ??\n  rapport.resultats ??\n  {};\n\nrapport.analyse_par_categorie =\n  Array.isArray(rapport.analyse_par_categorie)\n    ? rapport.analyse_par_categorie\n    : [];\n\nrapport.points_critiques =\n  Array.isArray(rapport.points_critiques)\n    ? rapport.points_critiques\n    : [];\n\nrapport.recommandations_generales =\n  Array.isArray(rapport.recommandations_generales)\n    ? rapport.recommandations_generales\n    : [];\nrapport.points_critiques = Array.isArray(rapport.points_critiques)\n  ? rapport.points_critiques.map(point => {\n      if (typeof point === 'string') {\n        return point;\n      }\n\n      if (point.commentaire) {\n        return point.commentaire;\n      }\n\n      if (point.categorie && point.emissions_tco2e) {\n        return `La catégorie ${point.categorie} représente un point critique avec ${point.emissions_tco2e} tCO2e.`;\n      }\n\n      return JSON.stringify(point);\n    })\n  : [];\n\nrapport.recommandations_generales = Array.isArray(rapport.recommandations_generales)\n  ? rapport.recommandations_generales.map(recommandation => {\n      if (typeof recommandation === 'string') {\n        return recommandation;\n      }\n\n      if (recommandation.action_proposee) {\n        return recommandation.action_proposee;\n      }\n\n      if (recommandation.commentaire) {\n        return recommandation.commentaire;\n      }\n\n      return JSON.stringify(recommandation);\n    })\n  : [];\nfunction normalizeTextList(list) {\n  if (!Array.isArray(list)) {\n    return [];\n  }\n\n  return list.map(item => {\n    // Cas 1 : déjà une phrase simple\n    if (typeof item === 'string') {\n      // Si c’est une chaîne JSON du type {\"point\":\"...\"}\n      const trimmed = item.trim();\n\n      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {\n        try {\n          const parsed = JSON.parse(trimmed);\n          return parsed.point\n            ?? parsed.commentaire\n            ?? parsed.action_proposee\n            ?? parsed.recommandation\n            ?? JSON.stringify(parsed);\n        } catch (e) {\n          return item;\n        }\n      }\n\n      return item;\n    }\n\n    // Cas 2 : objet JSON\n    if (typeof item === 'object' && item !== null) {\n      return item.point\n        ?? item.commentaire\n        ?? item.action_proposee\n        ?? item.recommandation\n        ?? item.description\n        ?? JSON.stringify(item);\n    }\n\n    return String(item);\n  });\n}\n\nrapport.points_critiques = normalizeTextList(rapport.points_critiques);\nrapport.recommandations_generales = normalizeTextList(rapport.recommandations_generales);\nreturn [\n  {\n    json: {\n      rapport,\n      debug_keys: Object.keys(rapport)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        -256
+      ],
+      "id": "f84cc03b-479a-45ad-9182-cbc1a4889bd3",
+      "name": "parser rapport"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": "={{ 200 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2096,
+        0
+      ],
+      "id": "d779eb56-d9c4-4eea-9e04-ac729831bb17",
+      "name": "Réponse rapport valide"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rapport = $('parser rapport').item.json.rapport;\nconst verification = $('vérification rapport code').item.json;\n\nreturn [\n  {\n    json: {\n      success: true,\n      statut: \"rapport_genere\",\n      message: \"Rapport généré avec succès\",\n      rapport,\n      verification\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        0
+      ],
+      "id": "c0a45bf5-a5ea-4646-b6b1-1175b418f6c3",
+      "name": "Réponse rapport valide1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const verification = $('vérification rapport code').item.json;\n\nreturn [\n  {\n    json: {\n      success: false,\n      statut: \"a_regenerer\",\n      message: \"Le rapport doit être régénéré\",\n      verification,\n      erreurs: verification.erreurs || []\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        208
+      ],
+      "id": "8ea62477-c3d3-4280-b6a5-3e53fc704750",
+      "name": "Réponse rapport invalide"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": "={{ 200 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2096,
+        208
+      ],
+      "id": "9da872d0-9995-48b2-9902-cf5ca71085f8",
+      "name": "Réponse rapport invalide1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const donnees = $('Préparer les données rapport').item.json ?? {};\nconst rapport = $('parser rapport').item.json.rapport ?? {};\n\nconst erreurs = [];\n\nfunction isEmpty(value) {\n  return value === undefined || value === null || String(value).trim() === '';\n}\n\nif (isEmpty(rapport.titre)) {\n  erreurs.push(\"Le rapport ne contient pas de titre.\");\n}\n\nif (isEmpty(rapport.resume_executif)) {\n  erreurs.push(\"Le rapport ne contient pas de résumé exécutif.\");\n}\n\nif (!rapport.informations_entreprise || typeof rapport.informations_entreprise !== 'object') {\n  erreurs.push(\"Le rapport ne contient pas les informations de l’entreprise.\");\n}\n\nif (!rapport.resultats_principaux || typeof rapport.resultats_principaux !== 'object') {\n  erreurs.push(\"Le rapport ne contient pas les résultats principaux.\");\n}\n\nif (isEmpty(rapport.analyse_globale)) {\n  erreurs.push(\"Le rapport ne contient pas d’analyse globale.\");\n}\n\nif (!Array.isArray(rapport.analyse_par_categorie)) {\n  erreurs.push(\"Le rapport ne contient pas d’analyse par catégorie.\");\n}\n\nif (!Array.isArray(rapport.points_critiques)) {\n  erreurs.push(\"Le rapport ne contient pas de points critiques.\");\n}\n\nif (!Array.isArray(rapport.recommandations_generales)) {\n  erreurs.push(\"Le rapport ne contient pas de recommandations générales.\");\n}\n\nif (isEmpty(rapport.conclusion)) {\n  erreurs.push(\"Le rapport ne contient pas de conclusion.\");\n}\n\nconst texte = JSON.stringify(rapport).toLowerCase();\n\nif (texte.includes('tva')) {\n  erreurs.push(\"Le rapport ne doit pas contenir de TVA carbone.\");\n}\n\nif (texte.includes('tnd')) {\n  erreurs.push(\"Le rapport ne doit pas contenir de montant TND.\");\n}\n\nconst resultats = donnees.resultats ?? donnees.resultat_carbone ?? {};\n\nconst totalKgLaravel =\n  resultats.total_kgco2e ??\n  resultats.total_kg_co2e ??\n  resultats.total_kg_co2e_an ??\n  null;\n\nconst totalTLaravel =\n  resultats.total_tco2e ??\n  resultats.total_t_co2e_an ??\n  null;\n\nconst totalKgRapport =\n  rapport.resultats_principaux?.total_kgco2e ??\n  rapport.resultats_principaux?.total_kg_co2e ??\n  null;\n\nconst totalTRapport =\n  rapport.resultats_principaux?.total_tco2e ??\n  rapport.resultats_principaux?.total_t_co2e_an ??\n  null;\n\nfunction equalNumber(a, b) {\n  if (a === null || b === null || a === undefined || b === undefined) {\n    return true;\n  }\n\n  return Math.abs(Number(a) - Number(b)) < 0.001;\n}\n\nif (!equalNumber(totalKgLaravel, totalKgRapport)) {\n  erreurs.push(\"Le total kgCO2e du rapport ne correspond pas au total fourni par Laravel.\");\n}\n\nif (!equalNumber(totalTLaravel, totalTRapport)) {\n  erreurs.push(\"Le total tCO2e du rapport ne correspond pas au total fourni par Laravel.\");\n}\n\nreturn [\n  {\n    json: {\n      valide: erreurs.length === 0,\n      statut: erreurs.length === 0 ? \"valide\" : \"a_regenerer\",\n      erreurs,\n      message: erreurs.length === 0 ? \"Rapport valide\" : \"Le rapport doit être régénéré\",\n      debug_keys: Object.keys(rapport)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "38b56327-e896-4d48-9dbc-96d81ca5e978",
+      "name": "vérification rapport code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json.body ?? $json;\n\nconst resultats = input.resultats ?? input.resultat_carbone ?? {};\nconst entreprise = input.entreprise ?? {};\nconst details = input.details_resultat ?? resultats.details ?? [];\n\nreturn [\n  {\n    json: {\n      entreprise_id: input.entreprise_id ?? input.entreprise?.id ?? null,\n      resultat_id: input.resultat_id ?? input.resultat_carbone_id ?? null,\n\n      entreprise: {\n        nom: entreprise.nom ?? null,\n        secteur: entreprise.secteur ?? null,\n        pays: entreprise.pays ?? null,\n        ville: entreprise.ville ?? null,\n        nombre_employes: entreprise.nombre_employes ?? null,\n        type_production: entreprise.type_production ?? null,\n        annee_calcul: entreprise.annee_calcul ?? null\n      },\n\n      resultats: {\n        total_kgco2e: Number(\n          resultats.total_kgco2e ??\n          resultats.total_kg_co2e ??\n          resultats.total_kg_co2e_an ??\n          0\n        ),\n        total_tco2e: Number(\n          resultats.total_tco2e ??\n          resultats.total_t_co2e_an ??\n          0\n        ),\n        categorie_dominante: resultats.categorie_dominante ?? null,\n        facteur_dominant: resultats.facteur_dominant ?? null\n      },\n\n      details_resultat: details\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d4a5c1d5-17be-400c-91fe-05d8c282f1dd",
+      "name": "Préparer les données rapport"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Préparer les données rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent de génération rapport",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Réponse rapport valide1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Réponse rapport invalide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent de génération rapport": {
+      "main": [
+        [
+          {
+            "node": "parser rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parser rapport": {
+      "main": [
+        [
+          {
+            "node": "vérification rapport code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Réponse rapport valide1": {
+      "main": [
+        [
+          {
+            "node": "Réponse rapport valide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Réponse rapport invalide": {
+      "main": [
+        [
+          {
+            "node": "Réponse rapport invalide1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "vérification rapport code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer les données rapport": {
+      "main": [
+        [
+          {
+            "node": "Agent de génération rapport",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3a4a651b-448d-4b65-87f6-ae3a0d9a3624",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b16e77f1c2a25c049260a3c73edc07007b966d323411319668b572030c75f983"
+  },
+  "id": "DJgx832q2ODQTg05",
+  "tags": []
+}
